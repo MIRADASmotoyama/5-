@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>お金の流れシミュレーター改｜発表ワークシート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Zen+Maru+Gothic:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --paper:#FDF9EF;
+    --paper-line:#E6DDC5;
+    --ink:#1F3A5F;
+    --ink-soft:#54658A;
+    --gold:#F0B04D;
+    --gold-dark:#C97F1E;
+    --coral:#F2836B;
+    --coral-dark:#D9603F;
+    --sky:#4F9DDE;
+    --sky-dark:#2E6FA8;
+    --mint:#45B79A;
+    --mint-dark:#2E8E76;
+    --grape:#8B6FD6;
+    --grape-dark:#6B4EB8;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image: radial-gradient(circle at 8px 8px, var(--paper-line) 1.2px, transparent 1.2px);
+    background-size:26px 26px;
+    font-family:'Zen Maru Gothic', sans-serif;
+    color:var(--ink);
+    padding:20px 12px 60px;
+  }
+  h1,h2,h3,.display{font-family:'Kosugi Maru', sans-serif;}
+  ruby rt{font-size:9px; color:var(--ink-soft); font-family:'Zen Maru Gothic';}
+  .app{max-width:900px;margin:0 auto;}
+
+  /* ---------- header ---------- */
+  .app-header{
+    background:#fff; border-radius:22px; padding:20px 20px 18px; box-shadow:0 10px 24px rgba(31,58,95,0.10);
+    margin-bottom:18px; text-align:center; position:relative;
+  }
+  .app-header h1{margin:0; font-size:24px;}
+  .app-header p{margin:6px 0 0; font-size:13px; color:var(--ink-soft);}
+  .toolbar{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:14px;}
+  .btn{ font-family:'Kosugi Maru'; font-size:13px; border:none; border-radius:999px; padding:9px 18px; cursor:pointer;}
+  .btn-primary{background:linear-gradient(135deg, var(--gold), var(--gold-dark)); color:#4A2E05;}
+  .btn-ghost{background:#fff; border:2px solid var(--ink); color:var(--ink);}
+
+  /* ---------- section card ---------- */
+  .sheet{
+    background:#fff; border-radius:22px; padding:22px 20px; box-shadow:0 10px 24px rgba(31,58,95,0.10);
+    margin-bottom:18px; position:relative;
+  }
+  .sheet-num{
+    position:absolute; top:-14px; left:20px; background:var(--ink); color:#fff;
+    padding:4px 14px; border-radius:999px; font-family:'Kosugi Maru'; font-size:12px; letter-spacing:1px;
+  }
+  .sheet h2{
+    font-size:20px; margin:6px 0 4px; padding-bottom:8px;
+    display:inline-block; position:relative;
+  }
+  .sheet h2:after{
+    content:""; position:absolute; left:0; bottom:0; width:56px; height:4px;
+    background:linear-gradient(90deg, var(--gold), var(--coral)); border-radius:2px;
+  }
+  .sheet .lead{color:var(--ink-soft); font-size:13px; margin:6px 0 16px;}
+
+  /* ---------- input styles ---------- */
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-weight:700; font-size:13px; margin-bottom:6px;}
+  .field input[type=text], .field textarea{
+    width:100%; border:2px solid var(--paper-line); border-radius:10px;
+    padding:8px 10px; font-family:'Zen Maru Gothic'; font-size:14px; background:#FFFDF6;
+    resize:vertical;
+  }
+  .field input[type=text]:focus, .field textarea:focus{ border-color:var(--gold-dark); outline:none;}
+  .field textarea{min-height:56px;}
+
+  /* ---------- Section1: Term cards ---------- */
+  .term-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  @media (max-width:640px){ .term-grid{grid-template-columns:1fr;} }
+  .term-card{
+    border:2px solid var(--paper-line); border-radius:14px; padding:12px; background:#FFFDF6;
+  }
+  .term-card.g-company{border-color:var(--coral-dark); background:#FFF6F2;}
+  .term-card.g-country{border-color:var(--sky-dark); background:#F1F7FC;}
+  .term-card.g-bank{border-color:var(--mint-dark); background:#F0FAF6;}
+  .term-badge{
+    display:inline-block; font-size:10px; padding:2px 8px; border-radius:999px;
+    font-weight:700; letter-spacing:1px; margin-bottom:6px;
+  }
+  .term-badge.b-company{background:rgba(217,96,63,0.15); color:var(--coral-dark);}
+  .term-badge.b-country{background:rgba(46,111,168,0.15); color:var(--sky-dark);}
+  .term-badge.b-bank{background:rgba(46,142,118,0.15); color:var(--mint-dark);}
+  .term-word{font-family:'Kosugi Maru'; font-size:15px; margin-bottom:6px;}
+  .term-hint{font-size:11px; color:var(--ink-soft); margin-bottom:8px;}
+  .term-card textarea{
+    width:100%; border:1.5px dashed var(--paper-line); border-radius:8px;
+    padding:6px 8px; font-family:'Zen Maru Gothic'; font-size:13px; background:#fff;
+    resize:vertical; min-height:52px;
+  }
+
+  /* ---------- Section2: Money flow map ---------- */
+  .map-wrap{
+    position:relative; background:#FFFDF6; border:2px solid var(--paper-line);
+    border-radius:16px; padding:16px; margin-bottom:16px;
+  }
+  .map-hint{font-size:11.5px; color:var(--ink-soft); text-align:center; margin-bottom:10px;}
+  .map-grid{
+    display:grid; grid-template-columns:1fr 1fr 1fr;
+    grid-template-rows:auto auto auto; gap:6px 8px; align-items:center; text-align:center;
+  }
+  .node{
+    border-radius:16px; padding:12px 6px; font-family:'Kosugi Maru'; font-size:14px;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    border:2.5px solid var(--ink);
+  }
+  .node .n-icon{font-size:26px;}
+  .node.me{background:#FFF3DD; border-color:var(--gold-dark);}
+  .node.company{background:#FFE9E1; border-color:var(--coral-dark);}
+  .node.country{background:#DEECFB; border-color:var(--sky-dark);}
+  .node.bank{background:#DAF3EA; border-color:var(--mint-dark);}
+  .arrow{
+    font-size:18px; color:var(--ink-soft); font-family:'Kosugi Maru';
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  /* connection input rows */
+  .conn-list{display:flex; flex-direction:column; gap:10px;}
+  .conn-row{
+    background:#FFFDF6; border:2px solid var(--paper-line); border-radius:12px; padding:10px 12px;
+  }
+  .conn-title{font-weight:700; font-size:13px; margin-bottom:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .conn-pill{
+    display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700;
+  }
+  .conn-pill.me{background:#FFF3DD; color:var(--gold-dark);}
+  .conn-pill.company{background:#FFE9E1; color:var(--coral-dark);}
+  .conn-pill.country{background:#DEECFB; color:var(--sky-dark);}
+  .conn-pill.bank{background:#DAF3EA; color:var(--mint-dark);}
+  .conn-arrow{font-size:14px; color:var(--ink-soft);}
+  .conn-directions{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  @media (max-width:520px){ .conn-directions{grid-template-columns:1fr;} }
+  .conn-direction label{font-size:11px; color:var(--ink-soft); display:block; margin-bottom:2px;}
+  .conn-direction input{
+    width:100%; border:1.5px dashed var(--paper-line); border-radius:8px;
+    padding:6px 8px; font-size:12.5px; font-family:'Zen Maru Gothic'; background:#fff;
+  }
+
+  /* ---------- Section3: News ---------- */
+  .news-grid{display:grid; grid-template-columns:1fr; gap:12px;}
+  .news-card{
+    border:2px solid var(--paper-line); border-radius:14px; padding:12px; background:#FFFDF6;
+  }
+  .news-card.g-company{border-color:var(--coral-dark); background:#FFF6F2;}
+  .news-card.g-country{border-color:var(--sky-dark); background:#F1F7FC;}
+  .news-card.g-bank{border-color:var(--mint-dark); background:#F0FAF6;}
+  .news-head{display:flex; align-items:center; gap:8px; margin-bottom:8px;}
+  .news-badge{
+    display:inline-block; font-size:10px; padding:3px 10px; border-radius:999px;
+    font-weight:700; letter-spacing:1px;
+  }
+  .news-badge.b-company{background:rgba(217,96,63,0.15); color:var(--coral-dark);}
+  .news-badge.b-country{background:rgba(46,111,168,0.15); color:var(--sky-dark);}
+  .news-badge.b-bank{background:rgba(46,142,118,0.15); color:var(--mint-dark);}
+  .news-title{font-family:'Kosugi Maru'; font-size:14.5px;}
+  .news-tip{
+    background:#fff; border:1.5px dashed var(--paper-line); border-radius:10px;
+    padding:8px 10px; margin-bottom:10px; font-size:11.5px; color:var(--ink-soft);
+  }
+  .news-tip b{color:var(--ink);}
+  .news-fields{display:flex; flex-direction:column; gap:8px;}
+  .news-fields label{font-size:11.5px; font-weight:700; color:var(--ink); display:block; margin-bottom:2px;}
+  .news-fields input, .news-fields textarea{
+    width:100%; border:1.5px dashed var(--paper-line); border-radius:8px;
+    padding:6px 8px; font-family:'Zen Maru Gothic'; font-size:13px; background:#fff; resize:vertical;
+  }
+  .news-fields textarea{min-height:46px;}
+
+  /* ---------- Section4: bonus ---------- */
+  .bonus-card{
+    background:linear-gradient(135deg, #F4EEFC, #FCF3EA); border:2px dashed var(--grape-dark);
+    border-radius:14px; padding:14px;
+  }
+  .bonus-card h3{margin:0 0 8px; font-size:14.5px; color:var(--grape-dark);}
+  .bonus-card textarea{
+    width:100%; border:2px solid #fff; border-radius:10px;
+    padding:8px 10px; font-family:'Zen Maru Gothic'; font-size:13.5px; background:#fff; resize:vertical; min-height:60px;
+  }
+
+  /* ---------- print / save ---------- */
+  #captureRoot{background:var(--paper); padding:12px;}
+  @media print{
+    body{background:#fff;}
+    .toolbar, .app-header .toolbar{display:none !important;}
+    .sheet{break-inside:avoid; page-break-inside:avoid; box-shadow:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="app-header">
+    <h1>お金の流れシミュレーター改<br>発表ワークシート</h1>
+    <p>用語 → お金の流れマップ → ニュース の順に埋めていこう！</p>
+    <div class="toolbar">
+      <button class="btn btn-primary" onclick="saveAsImage()">🖼️ 画像で保存</button>
+      <button class="btn btn-ghost" onclick="window.print()">🖨️ 印刷する</button>
+      <button class="btn btn-ghost" onclick="clearAll()">🔄 リセット</button>
+    </div>
+    <div id="saveStatus" style="font-size:12px; color:var(--ink-soft); margin-top:8px;"></div>
+  </div>
+
+  <div id="captureRoot">
+
+    <!-- ========== SECTION 1: 用語解説 ========== -->
+    <section class="sheet">
+      <div class="sheet-num">STEP 1</div>
+      <h2>用語を自分の言葉で説明しよう</h2>
+      <p class="lead">辞書の言葉じゃなくてOK！友だちに教えるつもりで、自分の言葉で書いてみよう。</p>
+
+      <div class="term-grid" id="termGrid"></div>
+    </section>
+
+    <!-- ========== SECTION 2: お金の流れマップ ========== -->
+    <section class="sheet">
+      <div class="sheet-num">STEP 2</div>
+      <h2>お金の流れマップを作ろう</h2>
+      <p class="lead">自分（わたし）と、会社・国・金融機関がどうつながっているか、6つの矢印を埋めてみよう。</p>
+
+      <div class="map-wrap">
+        <div class="map-hint">🗺️ こんなイメージ！</div>
+        <div class="map-grid">
+          <div></div>
+          <div class="node country"><div class="n-icon">🏛</div>国（税金）</div>
+          <div></div>
+
+          <div class="node bank"><div class="n-icon">🏦</div>金融機関</div>
+          <div class="node me"><div class="n-icon">🧒</div>わたし</div>
+          <div class="node company"><div class="n-icon">🏢</div>会社</div>
+
+          <div></div>
+          <div class="arrow">↕</div>
+          <div></div>
+        </div>
+      </div>
+
+      <div class="conn-list" id="connList"></div>
+    </section>
+
+    <!-- ========== SECTION 3: ニュース欄 ========== -->
+    <section class="sheet">
+      <div class="sheet-num">STEP 3</div>
+      <h2>今どうなっているの？ ニュース調査</h2>
+      <p class="lead">第2・3・4回で学んだテーマについて、最近のニュースを1つずつ見つけて書こう。</p>
+      <div class="news-grid" id="newsGrid"></div>
+    </section>
+
+    <!-- ========== SECTION 4: プラスα ========== -->
+    <section class="sheet">
+      <div class="sheet-num">＋α</div>
+      <h2>気になること・調べたいこと</h2>
+      <p class="lead">この授業を通してもっと知りたくなったこと、疑問に思ったことがあれば書いてみよう！</p>
+
+      <div class="bonus-card">
+        <h3>💭 わたしの「もっと知りたい」</h3>
+        <textarea id="bonusText" placeholder="例：もし自分が財務大臣ならどう配分する？／円安が続くと自分の生活はどうなる？／〇〇の会社は9つのモデルのどれ？"></textarea>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   Data
+========================================================= */
+const TERMS = [
+  // 第2回：会社
+  {id:'sales',     group:'company', badge:'第2回 会社', word:'売上高',   hint:'お店が商品を売って手に入れたお金 ぜんぶ'},
+  {id:'cost',      group:'company', badge:'第2回 会社', word:'売上原価', hint:'商品を作ったり仕入れたりするのにかかったお金'},
+  {id:'profit',    group:'company', badge:'第2回 会社', word:'営業利益', hint:'会社が本当に手に入れた「もうけ」'},
+  {id:'bizmodel',  group:'company', badge:'第2回 会社', word:'ビジネスモデル', hint:'会社の「もうけ方」のパターン（9つある）'},
+
+  // 第3回：国
+  {id:'tax',       group:'country', badge:'第3回 国',   word:'税金',       hint:'みんなが国におさめるお金'},
+  {id:'shohi',     group:'country', badge:'第3回 国',   word:'消費税',     hint:'買い物のときに払う税金'},
+  {id:'kokusai',   group:'country', badge:'第3回 国',   word:'国債',       hint:'国が借りるお金（あとで返す）'},
+  {id:'shakaihosho',group:'country',badge:'第3回 国',   word:'社会保障',   hint:'お年寄りの医療・介護・年金など、みんなを支える仕組み'},
+
+  // 第4回：金融機関
+  {id:'nichigin',  group:'bank',    badge:'第4回 日銀', word:'日本銀行（日銀）', hint:'お札を発行したり、金利を決めたりする特別な銀行'},
+  {id:'kinri',     group:'bank',    badge:'第4回 日銀', word:'政策金利',   hint:'日銀が決める、お金の「金利」の基準'},
+  {id:'inflation', group:'bank',    badge:'第4回 日銀', word:'インフレ',   hint:'物の値段が上がっていくこと'},
+  {id:'yenexchange',group:'bank',   badge:'第4回 日銀', word:'円安・円高', hint:'日本円と外国のお金を比べたときの強さ'}
+];
+
+const CONNECTIONS = [
+  {id:'me_company', a:'わたし', b:'会社',     aClass:'me',      bClass:'company',
+   toB:'例：買い物をしてお金を払う',        toA:'例：商品・サービスをもらう'},
+  {id:'me_country', a:'わたし', b:'国（税金）', aClass:'me',    bClass:'country',
+   toB:'例：消費税や所得税を払う',           toA:'例：学校・道路・医療などのサービスを受ける'},
+  {id:'me_bank',    a:'わたし', b:'金融機関', aClass:'me',      bClass:'bank',
+   toB:'例：お金を預ける／借りる',           toA:'例：利子をもらう／ローンを組める'},
+  {id:'company_country', a:'会社', b:'国（税金）', aClass:'company', bClass:'country',
+   toB:'例：法人税を払う',                  toA:'例：道路や治安などインフラを整備してもらう'},
+  {id:'company_bank',    a:'会社', b:'金融機関',   aClass:'company', bClass:'bank',
+   toB:'例：お金を借りる／預ける',          toA:'例：融資や利子を受け取る'},
+  {id:'country_bank',    a:'国（税金）', b:'金融機関（日銀）', aClass:'country', bClass:'bank',
+   toB:'例：国債を発行する',               toA:'例：日銀が国債を買う（金融政策）'}
+];
+
+const NEWS_ITEMS = [
+  {
+    id:'news_company', group:'company', badge:'第2回 会社',
+    title:'📰 会社・ビジネスに関するニュース',
+    tip:'<b>探すヒント：</b>「値上げ」「新しいサービス」「〇〇会社の決算」「サブスク」などで検索。 家族に「最近値上がりしたもの、ある？」と聞いてもOK！',
+    fields:[
+      {id:'q1', label:'どんなニュース？（見出しでOK）', type:'textarea'},
+      {id:'q2', label:'ビジネスモデルでいうと？', type:'text', placeholder:'例：広告モデル／フリーミアム'},
+      {id:'q3', label:'自分の感想・気づき', type:'textarea'}
+    ]
+  },
+  {
+    id:'news_country', group:'country', badge:'第3回 国',
+    title:'📰 国・税金・借金に関するニュース',
+    tip:'<b>探すヒント：</b>「消費税」「予算」「社会保障」「国の借金」などで検索。 家族に「最近、税金のニュースあった？」と聞いてもOK！',
+    fields:[
+      {id:'q1', label:'どんなニュース？（見出しでOK）', type:'textarea'},
+      {id:'q2', label:'税金？借金？使い道？どれの話？', type:'text', placeholder:'例：社会保障の使い道の話'},
+      {id:'q3', label:'自分の感想・気づき', type:'textarea'}
+    ]
+  },
+  {
+    id:'news_bank', group:'bank', badge:'第4回 日銀',
+    title:'📰 日銀・金利・物価に関するニュース',
+    tip:'<b>探すヒント：</b>「日銀」「金利」「円安」「物価」などで検索。 買い物のレシートで、去年と比べて値上がりしたものを探すのも◎',
+    fields:[
+      {id:'q1', label:'どんなニュース？（見出しでOK）', type:'textarea'},
+      {id:'q2', label:'金利？物価？円安・円高？どれの話？', type:'text', placeholder:'例：金利を上げる話'},
+      {id:'q3', label:'自分の感想・気づき', type:'textarea'}
+    ]
+  }
+];
+
+/* =========================================================
+   Render
+========================================================= */
+function badgeClass(g){ return 'b-'+g; }
+function groupClass(g){ return 'g-'+g; }
+
+function renderTerms(){
+  const wrap = document.getElementById('termGrid');
+  wrap.innerHTML='';
+  TERMS.forEach(t=>{
+    const card = document.createElement('div');
+    card.className='term-card '+groupClass(t.group);
+    card.innerHTML = `
+      <div class="term-badge ${badgeClass(t.group)}">${t.badge}</div>
+      <div class="term-word">${t.word}</div>
+      <div class="term-hint">${t.hint}</div>
+      <textarea data-key="term_${t.id}" placeholder="自分の言葉で説明すると…"></textarea>
+    `;
+    wrap.appendChild(card);
+  });
+}
+
+function renderConnections(){
+  const wrap = document.getElementById('connList');
+  wrap.innerHTML='';
+  CONNECTIONS.forEach(c=>{
+    const row = document.createElement('div');
+    row.className='conn-row';
+    row.innerHTML = `
+      <div class="conn-title">
+        <span class="conn-pill ${c.aClass}">${c.a}</span>
+        <span class="conn-arrow">⇔</span>
+        <span class="conn-pill ${c.bClass}">${c.b}</span>
+      </div>
+      <div class="conn-directions">
+        <div class="conn-direction">
+          <label>${c.a} → ${c.b}</label>
+          <input type="text" data-key="conn_${c.id}_ab" placeholder="${c.toB}">
+        </div>
+        <div class="conn-direction">
+          <label>${c.b} → ${c.a}</label>
+          <input type="text" data-key="conn_${c.id}_ba" placeholder="${c.toA}">
+        </div>
+      </div>
+    `;
+    wrap.appendChild(row);
+  });
+}
+
+function renderNews(){
+  const wrap = document.getElementById('newsGrid');
+  wrap.innerHTML='';
+  NEWS_ITEMS.forEach(n=>{
+    const card = document.createElement('div');
+    card.className='news-card '+groupClass(n.group);
+    let fieldsHtml = '';
+    n.fields.forEach(f=>{
+      const key = `${n.id}_${f.id}`;
+      if(f.type==='textarea'){
+        fieldsHtml += `<div><label>${f.label}</label><textarea data-key="${key}" placeholder="${f.placeholder||''}"></textarea></div>`;
+      } else {
+        fieldsHtml += `<div><label>${f.label}</label><input type="text" data-key="${key}" placeholder="${f.placeholder||''}"></div>`;
+      }
+    });
+    card.innerHTML = `
+      <div class="news-head">
+        <span class="news-badge ${badgeClass(n.group)}">${n.badge}</span>
+        <span class="news-title">${n.title}</span>
+      </div>
+      <div class="news-tip">${n.tip}</div>
+      <div class="news-fields">${fieldsHtml}</div>
+    `;
+    wrap.appendChild(card);
+  });
+}
+
+renderTerms();
+renderConnections();
+renderNews();
+
+/* =========================================================
+   LocalStorage save/load
+========================================================= */
+const STORAGE_KEY = 'moneyflow-ws-v1';
+
+function collectAll(){
+  const data = {};
+  document.querySelectorAll('[data-key]').forEach(el=>{
+    data[el.dataset.key] = el.value;
+  });
+  data['bonus'] = document.getElementById('bonusText').value;
+  return data;
+}
+function saveState(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(collectAll()));
+  }catch(e){}
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    document.querySelectorAll('[data-key]').forEach(el=>{
+      if(data[el.dataset.key] !== undefined) el.value = data[el.dataset.key];
+    });
+    if(data['bonus'] !== undefined) document.getElementById('bonusText').value = data['bonus'];
+  }catch(e){}
+}
+loadState();
+
+document.addEventListener('input', (e)=>{
+  if(e.target.matches('[data-key], #bonusText')) saveState();
+});
+
+function clearAll(){
+  if(!confirm('入力した内容をすべて消します。よろしいですか？')) return;
+  document.querySelectorAll('[data-key]').forEach(el=> el.value='');
+  document.getElementById('bonusText').value='';
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+}
+
+/* =========================================================
+   Save as image
+========================================================= */
+function saveAsImage(){
+  const status = document.getElementById('saveStatus');
+  if(typeof html2canvas === 'undefined'){
+    status.textContent = 'ライブラリの読み込みに失敗しました。ネット接続を確認してください。';
+    return;
+  }
+  status.textContent = '画像を作成中…（少し時間がかかります）';
+  // Convert textarea/input values into the DOM so html2canvas can capture them
+  document.querySelectorAll('textarea').forEach(t=>t.setAttribute('data-print', t.value));
+  html2canvas(document.getElementById('captureRoot'), {backgroundColor:'#FDF9EF', scale:2, useCORS:true}).then(canvas=>{
+    const link = document.createElement('a');
+    link.download = 'お金の流れワークシート.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    status.textContent = '画像を保存しました！ダウンロードフォルダを確認してね。';
+  }).catch(err=>{
+    status.textContent = '画像の保存に失敗しました。もう一度お試しください。';
+  });
+}
+</script>
+</body>
+</html>
